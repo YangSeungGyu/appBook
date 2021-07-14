@@ -2,13 +2,16 @@ package com.qman.appbook;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.qman.appbook.common.PreferenceManager;
 
@@ -20,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
+    AlertDialog.Builder alert;
     private Context context;
     AssetManager assetManager;
     TextView txtRead;
@@ -34,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        alert = setAlert(MainActivity.this);
         assetManager = getResources().getAssets();
         txtRead = (TextView)findViewById(R.id.txtRead);
         txtPage = (TextView)findViewById(R.id.txtPage);
@@ -76,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
             chpaterNoInt--;
             pageNoInt = getLastPageByChapter(Integer.toString(chpaterNoInt));//해당챕터 마지막pg
         }else {
+            alert("첫번째 페이지 입니다.");
             isPreFile = false;
         }
 
@@ -105,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
             PreferenceManager.setString(context, "pageNo",pageNo);
             readTxtAction();
         }else {
+            alert("마지막 페이지 입니다.\n첫페이지로 이동합니다.");
             chpaterNo = "1";
             pageNo = "1";
             PreferenceManager.setString(context, "chpaterNo",chpaterNo);
@@ -224,6 +231,23 @@ public class MainActivity extends AppCompatActivity {
             tmpPage = "0"+tmpPage;
         }
         return fileNm+"_"+tmpChpaterNo+"_"+tmpPage+fileExt;
+    }
+
+    //Alert Dialog 셋팅
+    private AlertDialog.Builder setAlert(Context context){
+        AlertDialog.Builder resultAlert = new AlertDialog.Builder(context);
+        resultAlert.setTitle("알림");
+        resultAlert.setPositiveButton("확인", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                Toast.makeText(getApplicationContext(),"Pressed OK",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+        return resultAlert;
+    }
+    private void alert(String msg){
+        alert.setMessage(msg).show();
     }
 
 }
