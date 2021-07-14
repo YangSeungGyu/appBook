@@ -16,6 +16,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     private Context context;
@@ -23,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
     TextView txtRead;
     TextView txtPage;
     ScrollView scrVw;
+    String chpaterNo;
     String pageNo;
     String fileNm = "a little princees";
     String fileExt = ".txt";
@@ -37,6 +40,13 @@ public class MainActivity extends AppCompatActivity {
         scrVw = (ScrollView)findViewById(R.id.scrVw);
 
         context = getApplicationContext();
+
+        chpaterNo = PreferenceManager.getString(context, "chpaterNo");
+        if(chpaterNo == null || chpaterNo.equals("")){
+            chpaterNo = "1";
+            PreferenceManager.setString(context, "chpaterNo",chpaterNo);
+        }
+
         pageNo = PreferenceManager.getString(context, "pageNo");
         if(pageNo == null || pageNo.equals("")){
             pageNo = "1";
@@ -44,23 +54,35 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-
         readTxtAction();
     }
 
     public void readTxtAction(){
-        String read = getDataFromAsset(fileNm+getFilePage(pageNo)+fileExt);
+        String read = getDataFromAsset(getFileNm(chpaterNo,pageNo));
         txtRead.setText(read);
-        txtPage.setText("page : "+pageNo);
+        txtPage.setText("chpater"+chpaterNo+" page - "+pageNo);
 
 
     }
 
     public void prePageAction(View v){
+        Integer chpaterNoInt = Integer.parseInt(PreferenceManager.getString(context, "chpaterNo"));
         Integer pageNoInt = Integer.parseInt(PreferenceManager.getString(context, "pageNo"));
+        boolean isPreFile = true;
+
         if(pageNoInt != 1){
             pageNoInt--;
+        } else if(pageNoInt == 1 && chpaterNoInt != 1){
+            chpaterNoInt--;
+            pageNoInt = getLastPageByChapter(Integer.toString(chpaterNoInt));//해당챕터 마지막pg
+        }else {
+            isPreFile = false;
+        }
+
+        if(isPreFile){
+            chpaterNo = Integer.toString(chpaterNoInt);
             pageNo = Integer.toString(pageNoInt);
+            PreferenceManager.setString(context, "chpaterNo",chpaterNo);
             PreferenceManager.setString(context, "pageNo",pageNo);
 
             readTxtAction();
@@ -74,16 +96,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void nextPageAction(View v){
-        Integer pageNoInt = Integer.parseInt(PreferenceManager.getString(context, "pageNo"));
-        pageNoInt++;
-        pageNo = Integer.toString(pageNoInt);
+        Map<String,String> nextFileInfo = getNextFileInfo();
 
-        boolean isFile = isFile(fileNm+getFilePage(pageNo)+fileExt);
-        if(isFile){
+        if(nextFileInfo != null){
+            chpaterNo = nextFileInfo.get("chpaterNo");
+            pageNo = nextFileInfo.get("pageNo");
+            PreferenceManager.setString(context, "chpaterNo",chpaterNo);
             PreferenceManager.setString(context, "pageNo",pageNo);
             readTxtAction();
         }else {
+            chpaterNo = "1";
             pageNo = "1";
+            PreferenceManager.setString(context, "chpaterNo",chpaterNo);
             PreferenceManager.setString(context, "pageNo",pageNo);
             readTxtAction();
         }
@@ -93,6 +117,48 @@ public class MainActivity extends AppCompatActivity {
                 scrVw.fullScroll(ScrollView.FOCUS_UP);
             }
         });
+    }
+
+    public Map<String,String> getNextFileInfo(){
+        HashMap<String,String> resultMap = null; //다음페이지 없음
+        //페이지 + 1
+        Integer chpaterNoInt = Integer.parseInt(PreferenceManager.getString(context, "chpaterNo"));
+        Integer pageNoInt = Integer.parseInt(PreferenceManager.getString(context, "pageNo"));
+        pageNoInt++;
+        String tmpChpaterNo = Integer.toString(chpaterNoInt);
+        String tmpPageNo = Integer.toString(pageNoInt);
+
+
+        boolean isNextFile = false;
+        if(isFile(getFileNm(tmpChpaterNo,tmpPageNo))){
+            isNextFile = true;
+
+        }else{
+            chpaterNoInt++;
+            tmpChpaterNo = Integer.toString(chpaterNoInt);
+            tmpPageNo = "1";
+            if(isFile(getFileNm(tmpChpaterNo,tmpPageNo))){
+                isNextFile = true;
+            }
+        }
+
+        if(isNextFile){
+            resultMap = new HashMap<String,String>();
+            resultMap.put("chpaterNo",tmpChpaterNo);
+            resultMap.put("pageNo",tmpPageNo);
+        }
+        return resultMap;
+    }
+
+    public Integer getLastPageByChapter(String chpaterNo){
+        int lastPageNo = 1;
+        for(int i = 1; i<100; i++){
+            if(!isFile(getFileNm(chpaterNo,Integer.toString(i)))){
+                lastPageNo =i-1;
+                break;
+            }
+        }
+        return lastPageNo;
     }
 
     public boolean isFile(String fileNm){
@@ -145,12 +211,19 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    public String getFilePage(String pageNo){
-        String returnPageNo = pageNo;
+    public String getFileNm(String chpaterNo,String pageNo){
+        String tmpChpaterNo = chpaterNo;
+        int chpaterNoLng = chpaterNo.length();
+        for(int i = chpaterNoLng ;i<2 ;i++){
+            tmpChpaterNo = "0"+tmpChpaterNo;
+        }
+
+        String tmpPage = pageNo;
         int pageNoLng = pageNo.length();
         for(int i = pageNoLng ;i<3 ;i++){
-            returnPageNo = "0"+returnPageNo;
+            tmpPage = "0"+tmpPage;
         }
-        return returnPageNo;
+        return fileNm+"_"+tmpChpaterNo+"_"+tmpPage+fileExt;
     }
+
 }
